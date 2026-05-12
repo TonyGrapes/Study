@@ -1,0 +1,70 @@
+# Обновляем базу данных пакетов apt, чтобы убедиться, что мы работаем с последним списком программ
+sudo apt-get update
+
+# Устанавливаем Git с помощью apt-get
+sudo apt-get install git
+
+# Создаем нового пользователя для операций Git
+sudo useradd labex-git
+sudo passwd labex-git
+<!-- Эта серия команд создает нового пользователя, устанавливает пароль и создает выделенную рабочую директорию для операций Git, гарантируя, что управление репозиториями изолировано от других системных действий -->
+sudo mkdir /home/labex-git
+sudo chown -R labex-git:labex-git /home/labex-git
+
+# Генерация пары SSH-ключей
+ssh-keygen -t rsa -C "labex@labex.io"
+
+cat ~/.ssh/id_rsa.pub | ssh labex-git@localhost 'mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys'
+
+# Переключение на пользователя Git
+su labex-git
+
+mkdir -p /home/labex-git/project.git
+cd /home/labex-git/project.git
+git init --bare
+<!-- 
+Обычно, когда вы работаете над проектом на своем компьютере, вы видите файлы проекта (код, документы, изображения) — это называется рабочий каталог (working directory).
+
+Однако, если вы создаете Git-сервер, вам не нужно, чтобы файлы проекта были «распакованы» и готовы к редактированию прямо на сервере. Вам нужно только хранилище для истории версий.
+
+"Bare" (голый) репозиторий — это:
+
+    Отсутствие рабочего каталога: В нем нет самих файлов проекта. Внутри папки project.git есть только папки вроде objects, refs, hooks, которые содержат саму историю Git, ветки и настройки.
+    Идеальное хранилище: Поскольку сервер только принимает изменения от разработчиков и отдает их обратно (push/pull), такой формат экономит место и предотвращает случайные конфликты, если кто-то попытается редактировать файлы прямо на сервере.
+    Стандарт для серверов: По общепринятому правилу, папки bare-репозиториев имеют расширение .git (как вы сделали: /home/labex-git/project.git).
+
+Команда git init --bare создает именно такую структуру. -->
+
+# Выход из пользователя Git
+exit
+
+# Создание каталога для вашего проекта
+mkdir -p /home/labex/project/labex_project
+cd /home/labex/project/labex_project
+
+# Инициализация Git-репозитория
+git init
+
+# Установка имени пользователя Git
+git config --global user.name "labex"
+
+# Установка электронной почты Git
+git config --global user.email "labex@labex.io"
+
+# Добавление всех изменений в staging (область подготовленных файлов)
+git add .
+
+# Коммит изменений
+git commit -m "Initial commit"
+
+# Добавление удаленного репозитория
+git remote add origin labex-git@localhost:/home/labex-git/project.git
+
+git push origin master
+
+
+# Переход в каталог для клонирования
+cd /home/labex/project
+
+# Клонирование репозитория
+git clone labex-git@localhost:/home/labex-git/project.git
